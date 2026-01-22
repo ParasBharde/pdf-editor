@@ -10,6 +10,9 @@ PyMuPDF==1.23.8
 python-docx==1.1.0
 pdf2docx==0.5.8
 
+# OpenCV (headless for server deployment)
+opencv-python-headless==4.8.1.78
+
 # Image Processing (for logos)
 Pillow==10.1.0
 
