@@ -1,0 +1,14 @@
+# Flask and Web Framework
+Flask==3.0.0
+flask-cors==4.0.0
+Werkzeug==3.0.1
+
+# PDF Processing
+PyMuPDF==1.23.8
+
+# Utilities
+python-dotenv==1.0.0
+
+# Development and Testing
+pytest==7.4.3
+pytest-flask==1.3.0
