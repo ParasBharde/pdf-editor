@@ -1,0 +1,20 @@
+version: '3.8'
+
+services:
+  pdf-redaction-service:
+    build: .
+    container_name: pdf-redaction-service
+    ports:
+      - "5000:5000"
+    environment:
+      - SECRET_KEY=${SECRET_KEY:-dev-secret-key-change-in-production}
+      - FLASK_ENV=${FLASK_ENV:-development}
+    volumes:
+      - ./temp_uploads:/app/temp_uploads
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
