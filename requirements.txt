@@ -3,6 +3,9 @@ Flask==3.0.0
 flask-cors==4.0.0
 Werkzeug==3.0.1
 
+# NumPy (pin to 1.x for compatibility with opencv and pdf2docx)
+numpy<2.0.0
+
 # PDF Processing
 PyMuPDF==1.23.8
 
