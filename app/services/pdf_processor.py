@@ -4,8 +4,10 @@ Handles PDF text extraction, detection, and redaction
 """
 import fitz  # PyMuPDF
 import io
-from typing import List, Dict, Set
+from typing import List, Dict, Set, Optional
 from app.services.redaction_patterns import RedactionPatterns
+from app.services.header_footer_service import HeaderFooterService, DefaultHeaderFooter
+from app.services.docx_service import DOCXService
 
 
 class PDFProcessor:
@@ -66,13 +68,38 @@ class PDFProcessor:
             # Apply all redactions on this page
             page.apply_redactions()
 
-    def redact_pdf(self, redaction_types: List[str], output_format: str = 'pdf') -> bytes:
+    def add_header_footer(self, header_config: Optional[Dict] = None,
+                         footer_config: Optional[Dict] = None,
+                         logo_bytes: Optional[bytes] = None):
+        """
+        Add header and footer to PDF
+
+        Args:
+            header_config: Header configuration dictionary
+            footer_config: Footer configuration dictionary
+            logo_bytes: Logo image bytes
+        """
+        hf_service = HeaderFooterService(self.pdf_document)
+
+        # Prepare header config with logo
+        if header_config and logo_bytes:
+            header_config['logo_bytes'] = logo_bytes
+
+        hf_service.add_header_footer(header_config, footer_config)
+
+    def redact_pdf(self, redaction_types: List[str], output_format: str = 'pdf',
+                   header_config: Optional[Dict] = None,
+                   footer_config: Optional[Dict] = None,
+                   logo_bytes: Optional[bytes] = None) -> bytes:
         """
         Main method to redact PDF based on specified types
 
         Args:
             redaction_types: List of data types to redact (email, phone, linkedin, portfolio, all_urls)
             output_format: Output format (pdf, or could extend to support images)
+            header_config: Optional header configuration
+            footer_config: Optional footer configuration
+            logo_bytes: Optional logo image bytes
 
         Returns:
             Redacted PDF as bytes
@@ -89,6 +116,10 @@ class PDFProcessor:
         # Perform redaction
         if terms_to_redact:
             self.search_and_redact(terms_to_redact)
+
+        # Add header and footer if provided
+        if header_config or footer_config or logo_bytes:
+            self.add_header_footer(header_config, footer_config, logo_bytes)
 
         # Return the redacted PDF as bytes
         return self._export_pdf(output_format)
@@ -144,7 +175,7 @@ class PDFRedactionService:
         'all_urls': 'All URLs'
     }
 
-    SUPPORTED_OUTPUT_FORMATS = ['pdf']
+    SUPPORTED_OUTPUT_FORMATS = ['pdf', 'docx']
 
     @classmethod
     def validate_redaction_types(cls, redaction_types: List[str]) -> bool:
@@ -157,8 +188,20 @@ class PDFRedactionService:
         return output_format.lower() in cls.SUPPORTED_OUTPUT_FORMATS
 
     @classmethod
+    def get_default_header_footer(cls) -> Dict:
+        """Get default Recrui8 header and footer configuration"""
+        return {
+            'header': DefaultHeaderFooter.get_recrui8_header(),
+            'footer': DefaultHeaderFooter.get_recrui8_footer()
+        }
+
+    @classmethod
     def process_pdf(cls, pdf_bytes: bytes, redaction_types: List[str],
-                   output_format: str = 'pdf', preview_mode: bool = False) -> Dict:
+                   output_format: str = 'pdf', preview_mode: bool = False,
+                   header_config: Optional[Dict] = None,
+                   footer_config: Optional[Dict] = None,
+                   logo_bytes: Optional[bytes] = None,
+                   use_default_footer: bool = False) -> Dict:
         """
         Process PDF with redaction
 
@@ -167,9 +210,13 @@ class PDFRedactionService:
             redaction_types: List of data types to redact
             output_format: Output format (default: pdf)
             preview_mode: If True, only return detected data without redacting
+            header_config: Optional header configuration
+            footer_config: Optional footer configuration
+            logo_bytes: Optional logo image bytes
+            use_default_footer: Use default Recrui8 footer
 
         Returns:
-            Dictionary with redacted PDF bytes and metadata
+            Dictionary with redacted document bytes and metadata
         """
         with PDFProcessor(pdf_bytes) as processor:
             # Get metadata
@@ -187,12 +234,34 @@ class PDFRedactionService:
                     'redaction_types': redaction_types
                 }
 
+            # Use default footer if requested
+            if use_default_footer and not footer_config:
+                footer_config = DefaultHeaderFooter.get_recrui8_footer()
+
             # Perform redaction
-            redacted_pdf = processor.redact_pdf(redaction_types, output_format)
+            redacted_pdf = processor.redact_pdf(
+                redaction_types,
+                'pdf',  # Always process as PDF first
+                header_config,
+                footer_config,
+                logo_bytes
+            )
+
+            # Convert to DOCX if requested
+            if output_format.lower() == 'docx':
+                redacted_output = DOCXService.process_docx_full(
+                    pdf_bytes,
+                    redaction_types,
+                    header_config,
+                    footer_config,
+                    logo_bytes
+                )
+            else:
+                redacted_output = redacted_pdf
 
             return {
                 'preview': False,
-                'redacted_pdf': redacted_pdf,
+                'redacted_pdf': redacted_output,
                 'sensitive_data_redacted': {k: len(v) for k, v in sensitive_data.items()},
                 'metadata': metadata,
                 'output_format': output_format

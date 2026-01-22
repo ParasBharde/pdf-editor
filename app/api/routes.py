@@ -19,14 +19,20 @@ def redact_pdf():
     - file: PDF file (required)
     - redaction_types: JSON array of redaction types (required)
       Options: ["email", "phone", "linkedin", "portfolio", "all_urls"]
-    - output_format: Output format (optional, default: pdf)
+    - output_format: Output format (optional, default: pdf) Options: ["pdf", "docx"]
     - preview: Boolean to preview what will be redacted (optional, default: false)
+    - use_default_footer: Boolean to add Recrui8 footer (optional, default: false)
+    - footer_text: Custom footer text (optional)
+    - header_text: Custom header text (optional)
+    - logo: Logo image file (optional)
 
     Example request:
     curl -X POST http://localhost:5000/api/redact \
       -F "file=@resume.pdf" \
       -F "redaction_types=[\"email\",\"phone\",\"linkedin\"]" \
-      -F "output_format=pdf"
+      -F "output_format=pdf" \
+      -F "use_default_footer=true" \
+      -F "logo=@logo.png"
     """
     try:
         # Validate file
@@ -39,7 +45,7 @@ def redact_pdf():
             return jsonify({'error': validation_result['error']}), 400
 
         # Validate request data
-        request_data = validate_request_data(request.form)
+        request_data = validate_request_data(request.form, request.files)
         if not request_data['valid']:
             return jsonify({'error': request_data['error']}), 400
 
@@ -47,6 +53,12 @@ def redact_pdf():
         redaction_types = request_data['redaction_types']
         output_format = request_data.get('output_format', 'pdf')
         preview_mode = request_data.get('preview', False)
+        use_default_footer = request_data.get('use_default_footer', False)
+
+        # Get header/footer configuration
+        header_config = request_data.get('header_config')
+        footer_config = request_data.get('footer_config')
+        logo_bytes = request_data.get('logo_bytes')
 
         # Read PDF file
         pdf_bytes = file.read()
@@ -56,7 +68,11 @@ def redact_pdf():
             pdf_bytes=pdf_bytes,
             redaction_types=redaction_types,
             output_format=output_format,
-            preview_mode=preview_mode
+            preview_mode=preview_mode,
+            header_config=header_config,
+            footer_config=footer_config,
+            logo_bytes=logo_bytes,
+            use_default_footer=use_default_footer
         )
 
         # If preview mode, return JSON with detected data
@@ -69,7 +85,7 @@ def redact_pdf():
                 'message': 'Preview of data that will be redacted'
             }), 200
 
-        # Return redacted PDF
+        # Return redacted document
         redacted_pdf_bytes = result['redacted_pdf']
 
         # Create filename for download
@@ -77,9 +93,12 @@ def redact_pdf():
         base_name = original_filename.rsplit('.', 1)[0]
         output_filename = f"{base_name}_redacted.{output_format}"
 
+        # Set MIME type based on output format
+        mime_type = 'application/pdf' if output_format == 'pdf' else 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+
         return send_file(
             io.BytesIO(redacted_pdf_bytes),
-            mimetype='application/pdf',
+            mimetype=mime_type,
             as_attachment=True,
             download_name=output_filename
         ), 200
