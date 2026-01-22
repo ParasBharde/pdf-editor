@@ -1,0 +1,894 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PDF Redaction Service - Recrui8</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 40px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 32px;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            opacity: 0.9;
+            font-size: 16px;
+        }
+
+        .api-info {
+            background: rgba(255, 255, 255, 0.2);
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 20px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            word-break: break-all;
+        }
+
+        .content {
+            padding: 40px;
+        }
+
+        .section {
+            margin-bottom: 35px;
+            padding-bottom: 35px;
+            border-bottom: 2px solid #f0f0f0;
+        }
+
+        .section:last-child {
+            border-bottom: none;
+        }
+
+        .section-title {
+            font-size: 20px;
+            color: #2d3748;
+            margin-bottom: 20px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .section-title .number {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            font-weight: bold;
+        }
+
+        .file-upload {
+            border: 3px dashed #cbd5e0;
+            border-radius: 12px;
+            padding: 30px;
+            text-align: center;
+            transition: all 0.3s;
+            cursor: pointer;
+            background: #f7fafc;
+        }
+
+        .file-upload:hover {
+            border-color: #667eea;
+            background: #edf2f7;
+            transform: translateY(-2px);
+        }
+
+        .file-upload.has-file {
+            border-color: #48bb78;
+            background: #f0fff4;
+        }
+
+        .file-upload input[type="file"] {
+            display: none;
+        }
+
+        .file-upload label {
+            cursor: pointer;
+            color: #667eea;
+            font-weight: 600;
+            font-size: 16px;
+            display: block;
+        }
+
+        .file-upload .icon {
+            font-size: 48px;
+            margin-bottom: 15px;
+        }
+
+        .file-info {
+            margin-top: 15px;
+            font-size: 14px;
+            color: #48bb78;
+            font-weight: 500;
+        }
+
+        .file-info.empty {
+            color: #718096;
+        }
+
+        .checkbox-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 15px;
+        }
+
+        .checkbox-item {
+            background: #f7fafc;
+            border: 2px solid #e2e8f0;
+            border-radius: 10px;
+            padding: 18px;
+            transition: all 0.2s;
+            cursor: pointer;
+        }
+
+        .checkbox-item:hover {
+            background: #edf2f7;
+            border-color: #cbd5e0;
+            transform: translateY(-2px);
+        }
+
+        .checkbox-item.checked {
+            background: #ebf4ff;
+            border-color: #667eea;
+        }
+
+        .checkbox-item input[type="checkbox"] {
+            margin-right: 12px;
+            width: 20px;
+            height: 20px;
+            cursor: pointer;
+            accent-color: #667eea;
+        }
+
+        .checkbox-item label {
+            cursor: pointer;
+            font-size: 15px;
+            color: #2d3748;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+        }
+
+        .radio-group {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+
+        .radio-item {
+            background: #f7fafc;
+            border: 3px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 20px;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-align: center;
+        }
+
+        .radio-item:hover {
+            background: #edf2f7;
+            border-color: #cbd5e0;
+        }
+
+        .radio-item.selected {
+            background: #ebf4ff;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .radio-item input[type="radio"] {
+            display: none;
+        }
+
+        .radio-item label {
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 16px;
+            color: #2d3748;
+            display: block;
+        }
+
+        .radio-item .format-icon {
+            font-size: 32px;
+            margin-bottom: 10px;
+        }
+
+        .input-group {
+            margin-bottom: 20px;
+        }
+
+        .input-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-size: 15px;
+            font-weight: 500;
+            color: #2d3748;
+        }
+
+        .input-group input[type="text"] {
+            width: 100%;
+            padding: 14px 18px;
+            border: 2px solid #e2e8f0;
+            border-radius: 10px;
+            font-size: 15px;
+            transition: all 0.2s;
+            font-family: inherit;
+        }
+
+        .input-group input[type="text"]:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .switch-container {
+            background: #f7fafc;
+            border: 2px solid #e2e8f0;
+            border-radius: 10px;
+            padding: 18px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 20px;
+        }
+
+        .switch-container label {
+            font-size: 15px;
+            font-weight: 500;
+            color: #2d3748;
+            flex: 1;
+        }
+
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 54px;
+            height: 28px;
+        }
+
+        .switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #cbd5e0;
+            transition: .3s;
+            border-radius: 28px;
+        }
+
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 22px;
+            width: 22px;
+            left: 3px;
+            bottom: 3px;
+            background-color: white;
+            transition: .3s;
+            border-radius: 50%;
+        }
+
+        input:checked + .slider {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+
+        input:checked + .slider:before {
+            transform: translateX(26px);
+        }
+
+        .button-group {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-top: 40px;
+        }
+
+        button {
+            padding: 18px 32px;
+            border: none;
+            border-radius: 12px;
+            font-size: 17px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-family: inherit;
+        }
+
+        .btn-preview {
+            background: white;
+            color: #667eea;
+            border: 3px solid #667eea;
+        }
+
+        .btn-preview:hover:not(:disabled) {
+            background: #f7fafc;
+            transform: translateY(-2px);
+            box-shadow: 0 8px 16px rgba(102, 126, 234, 0.2);
+        }
+
+        .btn-redact {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-redact:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 12px 24px rgba(102, 126, 234, 0.3);
+        }
+
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none !important;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            display: none;
+        }
+
+        .loading.show {
+            display: block;
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .results {
+            margin-top: 30px;
+            padding: 25px;
+            border-radius: 12px;
+            display: none;
+        }
+
+        .results.show {
+            display: block;
+        }
+
+        .results.success {
+            background: #f0fff4;
+            border: 2px solid #48bb78;
+        }
+
+        .results.error {
+            background: #fff5f5;
+            border: 2px solid #f56565;
+        }
+
+        .results h3 {
+            margin-bottom: 15px;
+            font-size: 18px;
+        }
+
+        .results.success h3 {
+            color: #22543d;
+        }
+
+        .results.error h3 {
+            color: #742a2a;
+        }
+
+        .results pre {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            overflow-x: auto;
+            font-size: 13px;
+            font-family: 'Courier New', monospace;
+            margin-top: 10px;
+        }
+
+        .results ul {
+            list-style: none;
+            padding: 0;
+        }
+
+        .results li {
+            padding: 8px 0;
+            color: #2d3748;
+        }
+
+        .results li:before {
+            content: "✓ ";
+            color: #48bb78;
+            font-weight: bold;
+            margin-right: 8px;
+        }
+
+        .help-text {
+            font-size: 13px;
+            color: #718096;
+            margin-top: 8px;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                border-radius: 0;
+            }
+
+            .content {
+                padding: 20px;
+            }
+
+            .radio-group,
+            .button-group {
+                grid-template-columns: 1fr;
+            }
+
+            .checkbox-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🔒 PDF Redaction Service</h1>
+            <p>Remove sensitive information and add company branding</p>
+            <div class="api-info">
+                <strong>API Endpoint:</strong> https://pdf-editor-4bfw.onrender.com/api
+            </div>
+        </div>
+
+        <div class="content">
+            <!-- Section 1: Upload PDF -->
+            <div class="section">
+                <div class="section-title">
+                    <span class="number">1</span>
+                    Upload Resume (PDF)
+                </div>
+                <div class="file-upload" id="pdfUploadArea">
+                    <div class="icon">📄</div>
+                    <input type="file" id="pdfFile" accept=".pdf">
+                    <label for="pdfFile">Click to upload PDF file</label>
+                    <div class="file-info empty" id="pdfFileInfo">No file selected</div>
+                </div>
+            </div>
+
+            <!-- Section 2: Upload Logo -->
+            <div class="section">
+                <div class="section-title">
+                    <span class="number">2</span>
+                    Upload Logo (Optional)
+                </div>
+                <div class="file-upload" id="logoUploadArea">
+                    <div class="icon">🖼️</div>
+                    <input type="file" id="logoFile" accept=".png,.jpg,.jpeg">
+                    <label for="logoFile">Click to upload logo (PNG/JPG)</label>
+                    <div class="file-info empty" id="logoFileInfo">No logo selected</div>
+                </div>
+                <p class="help-text">Recommended size: 200x60 pixels</p>
+            </div>
+
+            <!-- Section 3: Redaction Options -->
+            <div class="section">
+                <div class="section-title">
+                    <span class="number">3</span>
+                    What to Redact
+                </div>
+                <div class="checkbox-grid">
+                    <div class="checkbox-item checked" onclick="toggleCheckbox('email')">
+                        <label>
+                            <input type="checkbox" id="email" checked>
+                            📧 Email Address
+                        </label>
+                    </div>
+                    <div class="checkbox-item checked" onclick="toggleCheckbox('phone')">
+                        <label>
+                            <input type="checkbox" id="phone" checked>
+                            📞 Phone Number
+                        </label>
+                    </div>
+                    <div class="checkbox-item checked" onclick="toggleCheckbox('linkedin')">
+                        <label>
+                            <input type="checkbox" id="linkedin" checked>
+                            💼 LinkedIn Profile
+                        </label>
+                    </div>
+                    <div class="checkbox-item" onclick="toggleCheckbox('portfolio')">
+                        <label>
+                            <input type="checkbox" id="portfolio">
+                            🔗 Portfolio/GitHub
+                        </label>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Section 4: Output Format -->
+            <div class="section">
+                <div class="section-title">
+                    <span class="number">4</span>
+                    Download Format
+                </div>
+                <div class="radio-group">
+                    <div class="radio-item selected" onclick="selectFormat('pdf')">
+                        <input type="radio" name="format" id="formatPdf" value="pdf" checked>
+                        <label for="formatPdf">
+                            <div class="format-icon">📄</div>
+                            PDF Document
+                        </label>
+                    </div>
+                    <div class="radio-item" onclick="selectFormat('docx')">
+                        <input type="radio" name="format" id="formatDocx" value="docx">
+                        <label for="formatDocx">
+                            <div class="format-icon">📝</div>
+                            DOCX (Word)
+                        </label>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Section 5: Footer Options -->
+            <div class="section">
+                <div class="section-title">
+                    <span class="number">5</span>
+                    Footer Options
+                </div>
+                <div class="switch-container">
+                    <label for="useDefaultFooter">
+                        Use Recrui8 Footer<br>
+                        <small style="color: #718096; font-weight: normal;">Recrui8.com | info@Recrui8.com | +91 922-6881-922</small>
+                    </label>
+                    <label class="switch">
+                        <input type="checkbox" id="useDefaultFooter" checked onchange="toggleFooterInput()">
+                        <span class="slider"></span>
+                    </label>
+                </div>
+                <div class="input-group" id="customFooterGroup" style="display: none;">
+                    <label for="customFooter">Custom Footer Text:</label>
+                    <input type="text" id="customFooter" placeholder="Company Name | email@company.com | +1-555-0000">
+                </div>
+            </div>
+
+            <!-- Section 6: Header Options -->
+            <div class="section">
+                <div class="section-title">
+                    <span class="number">6</span>
+                    Header Text (Optional)
+                </div>
+                <div class="input-group">
+                    <input type="text" id="headerText" placeholder="e.g., Confidential Document - Recruitment Department">
+                </div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="button-group">
+                <button class="btn-preview" onclick="previewRedaction()" id="previewBtn">
+                    👁️ Preview What Will Be Redacted
+                </button>
+                <button class="btn-redact" onclick="redactAndDownload()" id="redactBtn">
+                    ⬇️ Redact & Download
+                </button>
+            </div>
+
+            <!-- Loading -->
+            <div class="loading" id="loading">
+                <div class="spinner"></div>
+                <p style="color: #667eea; font-weight: 600;">Processing your request...</p>
+                <p style="color: #718096; font-size: 14px; margin-top: 10px;">This may take a few seconds</p>
+            </div>
+
+            <!-- Results -->
+            <div class="results" id="results"></div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'https://pdf-editor-4bfw.onrender.com/api';
+
+        // File upload handlers
+        document.getElementById('pdfFile').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            const uploadArea = document.getElementById('pdfUploadArea');
+            const fileInfo = document.getElementById('pdfFileInfo');
+
+            if (file) {
+                fileInfo.textContent = `✓ ${file.name} (${(file.size / 1024).toFixed(1)} KB)`;
+                fileInfo.classList.remove('empty');
+                uploadArea.classList.add('has-file');
+            } else {
+                fileInfo.textContent = 'No file selected';
+                fileInfo.classList.add('empty');
+                uploadArea.classList.remove('has-file');
+            }
+        });
+
+        document.getElementById('logoFile').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            const uploadArea = document.getElementById('logoUploadArea');
+            const fileInfo = document.getElementById('logoFileInfo');
+
+            if (file) {
+                fileInfo.textContent = `✓ ${file.name}`;
+                fileInfo.classList.remove('empty');
+                uploadArea.classList.add('has-file');
+            } else {
+                fileInfo.textContent = 'No logo selected';
+                fileInfo.classList.add('empty');
+                uploadArea.classList.remove('has-file');
+            }
+        });
+
+        function toggleCheckbox(id) {
+            const checkbox = document.getElementById(id);
+            checkbox.checked = !checkbox.checked;
+
+            const item = event.currentTarget;
+            if (checkbox.checked) {
+                item.classList.add('checked');
+            } else {
+                item.classList.remove('checked');
+            }
+        }
+
+        function selectFormat(format) {
+            document.querySelectorAll('.radio-item').forEach(item => {
+                item.classList.remove('selected');
+            });
+            event.currentTarget.classList.add('selected');
+            document.getElementById('format' + format.charAt(0).toUpperCase() + format.slice(1)).checked = true;
+        }
+
+        function toggleFooterInput() {
+            const useDefault = document.getElementById('useDefaultFooter').checked;
+            const customGroup = document.getElementById('customFooterGroup');
+            customGroup.style.display = useDefault ? 'none' : 'block';
+        }
+
+        function getSelectedRedactionTypes() {
+            const types = [];
+            if (document.getElementById('email').checked) types.push('email');
+            if (document.getElementById('phone').checked) types.push('phone');
+            if (document.getElementById('linkedin').checked) types.push('linkedin');
+            if (document.getElementById('portfolio').checked) types.push('portfolio');
+            return types;
+        }
+
+        function showLoading() {
+            document.getElementById('loading').classList.add('show');
+            document.getElementById('results').classList.remove('show');
+            document.getElementById('previewBtn').disabled = true;
+            document.getElementById('redactBtn').disabled = true;
+        }
+
+        function hideLoading() {
+            document.getElementById('loading').classList.remove('show');
+            document.getElementById('previewBtn').disabled = false;
+            document.getElementById('redactBtn').disabled = false;
+        }
+
+        function showResults(html, isSuccess = true) {
+            const resultsDiv = document.getElementById('results');
+            resultsDiv.innerHTML = html;
+            resultsDiv.className = 'results show ' + (isSuccess ? 'success' : 'error');
+        }
+
+        async function previewRedaction() {
+            const pdfFile = document.getElementById('pdfFile').files[0];
+            if (!pdfFile) {
+                alert('⚠️ Please select a PDF file first!');
+                return;
+            }
+
+            const redactionTypes = getSelectedRedactionTypes();
+            if (redactionTypes.length === 0) {
+                alert('⚠️ Please select at least one field to redact!');
+                return;
+            }
+
+            showLoading();
+
+            try {
+                const formData = new FormData();
+                formData.append('file', pdfFile);
+                formData.append('redaction_types', JSON.stringify(redactionTypes));
+
+                const response = await fetch(`${API_BASE}/preview`, {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    const sensitiveData = data.sensitive_data;
+                    let foundItems = 0;
+                    let itemsList = '';
+
+                    Object.keys(sensitiveData).forEach(key => {
+                        if (sensitiveData[key].length > 0) {
+                            foundItems += sensitiveData[key].length;
+                            itemsList += `<li><strong>${key}:</strong> ${sensitiveData[key].length} found</li>`;
+                        }
+                    });
+
+                    showResults(`
+                        <h3>✅ Preview Results</h3>
+                        <p><strong>Total items to be redacted: ${foundItems}</strong></p>
+                        <ul>${itemsList || '<li>No sensitive data found</li>'}</ul>
+                        <pre>${JSON.stringify(sensitiveData, null, 2)}</pre>
+                    `, true);
+                } else {
+                    showResults(`
+                        <h3>❌ Error</h3>
+                        <p>${data.error || 'Failed to preview PDF'}</p>
+                        <pre>${JSON.stringify(data, null, 2)}</pre>
+                    `, false);
+                }
+            } catch (error) {
+                showResults(`
+                    <h3>❌ Error</h3>
+                    <p>${error.message}</p>
+                `, false);
+            } finally {
+                hideLoading();
+            }
+        }
+
+        async function redactAndDownload() {
+            const pdfFile = document.getElementById('pdfFile').files[0];
+            if (!pdfFile) {
+                alert('⚠️ Please select a PDF file first!');
+                return;
+            }
+
+            const redactionTypes = getSelectedRedactionTypes();
+            if (redactionTypes.length === 0) {
+                alert('⚠️ Please select at least one field to redact!');
+                return;
+            }
+
+            showLoading();
+
+            try {
+                const formData = new FormData();
+                formData.append('file', pdfFile);
+                formData.append('redaction_types', JSON.stringify(redactionTypes));
+
+                // Output format
+                const outputFormat = document.querySelector('input[name="format"]:checked').value;
+                formData.append('output_format', outputFormat);
+
+                // Footer
+                const useDefaultFooter = document.getElementById('useDefaultFooter').checked;
+                formData.append('use_default_footer', useDefaultFooter.toString());
+
+                if (!useDefaultFooter) {
+                    const customFooter = document.getElementById('customFooter').value;
+                    if (customFooter) {
+                        formData.append('footer_text', customFooter);
+                    }
+                }
+
+                // Header
+                const headerText = document.getElementById('headerText').value;
+                if (headerText) {
+                    formData.append('header_text', headerText);
+                }
+
+                // Logo
+                const logoFile = document.getElementById('logoFile').files[0];
+                if (logoFile) {
+                    formData.append('logo', logoFile);
+                }
+
+                const response = await fetch(`${API_BASE}/redact`, {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (response.ok) {
+                    const blob = await response.blob();
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+
+                    const baseName = pdfFile.name.replace('.pdf', '');
+                    a.download = `${baseName}_redacted.${outputFormat}`;
+                    a.click();
+
+                    let details = [
+                        `File: ${baseName}_redacted.${outputFormat}`,
+                        `Format: ${outputFormat.toUpperCase()}`,
+                        `Redaction types: ${redactionTypes.join(', ')}`
+                    ];
+
+                    if (useDefaultFooter) {
+                        details.push('Recrui8 footer added');
+                    } else if (document.getElementById('customFooter').value) {
+                        details.push('Custom footer added');
+                    }
+
+                    if (headerText) {
+                        details.push('Header text added');
+                    }
+
+                    if (logoFile) {
+                        details.push('Logo added');
+                    }
+
+                    showResults(`
+                        <h3>✅ Success! File Downloaded</h3>
+                        <ul>
+                            ${details.map(d => `<li>${d}</li>`).join('')}
+                        </ul>
+                        <p style="margin-top: 15px; color: #48bb78; font-weight: 600;">
+                            Check your downloads folder for the redacted file!
+                        </p>
+                    `, true);
+                } else {
+                    const error = await response.json();
+                    showResults(`
+                        <h3>❌ Error</h3>
+                        <p>${error.error || 'Failed to process PDF'}</p>
+                        <pre>${JSON.stringify(error, null, 2)}</pre>
+                    `, false);
+                }
+            } catch (error) {
+                showResults(`
+                    <h3>❌ Error</h3>
+                    <p>${error.message}</p>
+                `, false);
+            } finally {
+                hideLoading();
+            }
+        }
+    </script>
+</body>
+</html>
