@@ -29,12 +29,13 @@ def validate_file(file: FileStorage) -> dict:
     return {'valid': True}
 
 
-def validate_request_data(form_data) -> dict:
+def validate_request_data(form_data, files=None) -> dict:
     """
     Validate request form data
 
     Args:
         form_data: Form data from Flask request
+        files: Files from Flask request (optional)
 
     Returns:
         Dictionary with validation result and parsed data
@@ -92,5 +93,46 @@ def validate_request_data(form_data) -> dict:
         result['preview'] = preview.lower() in ['true', '1', 'yes']
     else:
         result['preview'] = bool(preview)
+
+    # Parse use_default_footer flag (optional)
+    use_default_footer = form_data.get('use_default_footer', 'false')
+    if isinstance(use_default_footer, str):
+        result['use_default_footer'] = use_default_footer.lower() in ['true', '1', 'yes']
+    else:
+        result['use_default_footer'] = bool(use_default_footer)
+
+    # Parse header configuration (optional)
+    header_text = form_data.get('header_text')
+    if header_text:
+        result['header_config'] = {
+            'text': header_text,
+            'font_size': int(form_data.get('header_font_size', 10)),
+            'logo_position': form_data.get('logo_position', 'left')
+        }
+
+    # Parse footer configuration (optional)
+    footer_text = form_data.get('footer_text')
+    if footer_text:
+        result['footer_config'] = {
+            'text': footer_text,
+            'font_size': int(form_data.get('footer_font_size', 9)),
+            'align': form_data.get('footer_align', 'center')
+        }
+
+    # Parse logo file (optional)
+    if files and 'logo' in files:
+        logo_file = files['logo']
+        if logo_file and logo_file.filename != '':
+            # Validate logo file extension
+            allowed_extensions = ['png', 'jpg', 'jpeg']
+            file_ext = logo_file.filename.rsplit('.', 1)[1].lower() if '.' in logo_file.filename else ''
+
+            if file_ext not in allowed_extensions:
+                return {
+                    'valid': False,
+                    'error': f'Invalid logo file. Supported formats: {allowed_extensions}'
+                }
+
+            result['logo_bytes'] = logo_file.read()
 
     return result

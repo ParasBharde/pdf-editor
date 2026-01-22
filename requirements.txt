@@ -6,6 +6,13 @@ Werkzeug==3.0.1
 # PDF Processing
 PyMuPDF==1.23.8
 
+# DOCX Processing
+python-docx==1.1.0
+pdf2docx==0.5.8
+
+# Image Processing (for logos)
+Pillow==10.1.0
+
 # Production Server
 gunicorn==21.2.0
 

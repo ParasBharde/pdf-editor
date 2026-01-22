@@ -1,0 +1,583 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PDF Redaction Service - New Features Test</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            padding: 40px;
+        }
+
+        h1 {
+            color: #2d3748;
+            margin-bottom: 10px;
+            font-size: 28px;
+        }
+
+        .subtitle {
+            color: #718096;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+
+        .api-url {
+            background: #edf2f7;
+            padding: 10px 15px;
+            border-radius: 8px;
+            margin-bottom: 30px;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            word-break: break-all;
+        }
+
+        .section {
+            margin-bottom: 30px;
+        }
+
+        .section-title {
+            font-size: 18px;
+            color: #2d3748;
+            margin-bottom: 15px;
+            font-weight: 600;
+        }
+
+        .file-upload {
+            border: 2px dashed #cbd5e0;
+            border-radius: 8px;
+            padding: 20px;
+            text-align: center;
+            margin-bottom: 15px;
+            transition: all 0.3s;
+        }
+
+        .file-upload:hover {
+            border-color: #667eea;
+            background: #f7fafc;
+        }
+
+        .file-upload input[type="file"] {
+            display: none;
+        }
+
+        .file-upload label {
+            cursor: pointer;
+            color: #667eea;
+            font-weight: 500;
+        }
+
+        .file-info {
+            margin-top: 10px;
+            font-size: 13px;
+            color: #718096;
+        }
+
+        .checkbox-group {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .checkbox-item {
+            display: flex;
+            align-items: center;
+            padding: 10px;
+            background: #f7fafc;
+            border-radius: 6px;
+            transition: all 0.2s;
+        }
+
+        .checkbox-item:hover {
+            background: #edf2f7;
+        }
+
+        .checkbox-item input[type="checkbox"] {
+            margin-right: 10px;
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+        }
+
+        .checkbox-item label {
+            cursor: pointer;
+            font-size: 14px;
+            color: #2d3748;
+        }
+
+        .radio-group {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+
+        .radio-item {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            padding: 15px;
+            background: #f7fafc;
+            border-radius: 8px;
+            border: 2px solid transparent;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .radio-item:hover {
+            background: #edf2f7;
+        }
+
+        .radio-item.selected {
+            background: #ebf4ff;
+            border-color: #667eea;
+        }
+
+        .radio-item input[type="radio"] {
+            margin-right: 10px;
+            cursor: pointer;
+        }
+
+        .radio-item label {
+            cursor: pointer;
+            font-weight: 500;
+            color: #2d3748;
+        }
+
+        .input-group {
+            margin-bottom: 15px;
+        }
+
+        .input-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-size: 14px;
+            font-weight: 500;
+            color: #2d3748;
+        }
+
+        .input-group input[type="text"] {
+            width: 100%;
+            padding: 10px 15px;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: all 0.2s;
+        }
+
+        .input-group input[type="text"]:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 15px;
+            margin-top: 30px;
+        }
+
+        button {
+            flex: 1;
+            padding: 15px 30px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-primary:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+        }
+
+        .btn-secondary {
+            background: #edf2f7;
+            color: #2d3748;
+        }
+
+        .btn-secondary:hover:not(:disabled) {
+            background: #e2e8f0;
+        }
+
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .results {
+            margin-top: 30px;
+            padding: 20px;
+            background: #f7fafc;
+            border-radius: 8px;
+            border-left: 4px solid #667eea;
+            display: none;
+        }
+
+        .results.show {
+            display: block;
+        }
+
+        .results pre {
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            color: #2d3748;
+            margin-top: 10px;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 20px;
+            display: none;
+        }
+
+        .loading.show {
+            display: block;
+        }
+
+        .spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 15px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .success {
+            color: #38a169;
+            font-weight: 600;
+        }
+
+        .error {
+            color: #e53e3e;
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔒 PDF Redaction Service</h1>
+        <p class="subtitle">Test the new header, footer, and DOCX features</p>
+
+        <div class="api-url">
+            <strong>API:</strong> https://pdf-editor-4bfw.onrender.com/api
+        </div>
+
+        <!-- PDF File Upload -->
+        <div class="section">
+            <div class="section-title">1. Upload Resume (PDF)</div>
+            <div class="file-upload" id="pdfUploadArea">
+                <input type="file" id="pdfFile" accept=".pdf">
+                <label for="pdfFile">📄 Click to upload PDF</label>
+                <div class="file-info" id="pdfFileInfo"></div>
+            </div>
+        </div>
+
+        <!-- Logo Upload -->
+        <div class="section">
+            <div class="section-title">2. Upload Logo (Optional)</div>
+            <div class="file-upload" id="logoUploadArea">
+                <input type="file" id="logoFile" accept=".png,.jpg,.jpeg">
+                <label for="logoFile">🖼️ Click to upload logo (PNG/JPG)</label>
+                <div class="file-info" id="logoFileInfo"></div>
+            </div>
+        </div>
+
+        <!-- Redaction Options -->
+        <div class="section">
+            <div class="section-title">3. What to Redact</div>
+            <div class="checkbox-group">
+                <div class="checkbox-item">
+                    <input type="checkbox" id="email" checked>
+                    <label for="email">📧 Email Address</label>
+                </div>
+                <div class="checkbox-item">
+                    <input type="checkbox" id="phone" checked>
+                    <label for="phone">📞 Phone Number</label>
+                </div>
+                <div class="checkbox-item">
+                    <input type="checkbox" id="linkedin" checked>
+                    <label for="linkedin">💼 LinkedIn</label>
+                </div>
+                <div class="checkbox-item">
+                    <input type="checkbox" id="portfolio">
+                    <label for="portfolio">🔗 Portfolio/GitHub</label>
+                </div>
+            </div>
+        </div>
+
+        <!-- Output Format -->
+        <div class="section">
+            <div class="section-title">4. Download Format</div>
+            <div class="radio-group">
+                <div class="radio-item selected" onclick="selectFormat('pdf')">
+                    <input type="radio" name="format" id="formatPdf" value="pdf" checked>
+                    <label for="formatPdf">📄 PDF</label>
+                </div>
+                <div class="radio-item" onclick="selectFormat('docx')">
+                    <input type="radio" name="format" id="formatDocx" value="docx">
+                    <label for="formatDocx">📝 DOCX (Word)</label>
+                </div>
+            </div>
+        </div>
+
+        <!-- Footer Options -->
+        <div class="section">
+            <div class="section-title">5. Footer Options</div>
+            <div class="checkbox-item" style="margin-bottom: 15px;">
+                <input type="checkbox" id="useDefaultFooter" checked>
+                <label for="useDefaultFooter">Use Recrui8 Footer (Recrui8.com | info@Recrui8.com | +91 922-6881-922)</label>
+            </div>
+            <div class="input-group">
+                <label for="customFooter">Or use custom footer text:</label>
+                <input type="text" id="customFooter" placeholder="Company Name | email@company.com | +1-555-0000">
+            </div>
+        </div>
+
+        <!-- Header Options -->
+        <div class="section">
+            <div class="section-title">6. Header Text (Optional)</div>
+            <div class="input-group">
+                <input type="text" id="headerText" placeholder="e.g., Confidential Document">
+            </div>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="button-group">
+            <button class="btn-secondary" onclick="previewRedaction()" id="previewBtn">
+                👁️ Preview
+            </button>
+            <button class="btn-primary" onclick="redactAndDownload()" id="redactBtn">
+                ⬇️ Redact & Download
+            </button>
+        </div>
+
+        <!-- Loading -->
+        <div class="loading" id="loading">
+            <div class="spinner"></div>
+            <p>Processing your request...</p>
+        </div>
+
+        <!-- Results -->
+        <div class="results" id="results"></div>
+    </div>
+
+    <script>
+        const API_BASE = 'https://pdf-editor-4bfw.onrender.com/api';
+
+        // File upload handlers
+        document.getElementById('pdfFile').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                document.getElementById('pdfFileInfo').textContent = `Selected: ${file.name} (${(file.size / 1024).toFixed(1)} KB)`;
+            }
+        });
+
+        document.getElementById('logoFile').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                document.getElementById('logoFileInfo').textContent = `Selected: ${file.name}`;
+            }
+        });
+
+        function selectFormat(format) {
+            document.querySelectorAll('.radio-item').forEach(item => {
+                item.classList.remove('selected');
+            });
+            event.currentTarget.classList.add('selected');
+        }
+
+        function getSelectedRedactionTypes() {
+            const types = [];
+            if (document.getElementById('email').checked) types.push('email');
+            if (document.getElementById('phone').checked) types.push('phone');
+            if (document.getElementById('linkedin').checked) types.push('linkedin');
+            if (document.getElementById('portfolio').checked) types.push('portfolio');
+            return types;
+        }
+
+        function showLoading() {
+            document.getElementById('loading').classList.add('show');
+            document.getElementById('results').classList.remove('show');
+            document.getElementById('previewBtn').disabled = true;
+            document.getElementById('redactBtn').disabled = true;
+        }
+
+        function hideLoading() {
+            document.getElementById('loading').classList.remove('show');
+            document.getElementById('previewBtn').disabled = false;
+            document.getElementById('redactBtn').disabled = false;
+        }
+
+        function showResults(html) {
+            document.getElementById('results').innerHTML = html;
+            document.getElementById('results').classList.add('show');
+        }
+
+        async function previewRedaction() {
+            const pdfFile = document.getElementById('pdfFile').files[0];
+            if (!pdfFile) {
+                alert('Please select a PDF file first!');
+                return;
+            }
+
+            const redactionTypes = getSelectedRedactionTypes();
+            if (redactionTypes.length === 0) {
+                alert('Please select at least one field to redact!');
+                return;
+            }
+
+            showLoading();
+
+            try {
+                const formData = new FormData();
+                formData.append('file', pdfFile);
+                formData.append('redaction_types', JSON.stringify(redactionTypes));
+
+                const response = await fetch(`${API_BASE}/preview`, {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    showResults(`
+                        <div class="success">✅ Preview Results:</div>
+                        <pre>${JSON.stringify(data, null, 2)}</pre>
+                    `);
+                } else {
+                    showResults(`
+                        <div class="error">❌ Error:</div>
+                        <pre>${JSON.stringify(data, null, 2)}</pre>
+                    `);
+                }
+            } catch (error) {
+                showResults(`
+                    <div class="error">❌ Error:</div>
+                    <pre>${error.message}</pre>
+                `);
+            } finally {
+                hideLoading();
+            }
+        }
+
+        async function redactAndDownload() {
+            const pdfFile = document.getElementById('pdfFile').files[0];
+            if (!pdfFile) {
+                alert('Please select a PDF file first!');
+                return;
+            }
+
+            const redactionTypes = getSelectedRedactionTypes();
+            if (redactionTypes.length === 0) {
+                alert('Please select at least one field to redact!');
+                return;
+            }
+
+            showLoading();
+
+            try {
+                const formData = new FormData();
+                formData.append('file', pdfFile);
+                formData.append('redaction_types', JSON.stringify(redactionTypes));
+
+                // Output format
+                const outputFormat = document.querySelector('input[name="format"]:checked').value;
+                formData.append('output_format', outputFormat);
+
+                // Footer
+                const useDefaultFooter = document.getElementById('useDefaultFooter').checked;
+                formData.append('use_default_footer', useDefaultFooter.toString());
+
+                const customFooter = document.getElementById('customFooter').value;
+                if (customFooter && !useDefaultFooter) {
+                    formData.append('footer_text', customFooter);
+                }
+
+                // Header
+                const headerText = document.getElementById('headerText').value;
+                if (headerText) {
+                    formData.append('header_text', headerText);
+                }
+
+                // Logo
+                const logoFile = document.getElementById('logoFile').files[0];
+                if (logoFile) {
+                    formData.append('logo', logoFile);
+                }
+
+                const response = await fetch(`${API_BASE}/redact`, {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (response.ok) {
+                    const blob = await response.blob();
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `redacted_${pdfFile.name.replace('.pdf', '')}.${outputFormat}`;
+                    a.click();
+
+                    showResults(`
+                        <div class="success">✅ Success!</div>
+                        <p>File downloaded as: <strong>redacted_${pdfFile.name.replace('.pdf', '')}.${outputFormat}</strong></p>
+                        <p>Redaction types: ${redactionTypes.join(', ')}</p>
+                        <p>Output format: ${outputFormat.toUpperCase()}</p>
+                        ${useDefaultFooter ? '<p>✓ Recrui8 footer added</p>' : ''}
+                        ${customFooter && !useDefaultFooter ? '<p>✓ Custom footer added</p>' : ''}
+                        ${headerText ? '<p>✓ Header text added</p>' : ''}
+                        ${logoFile ? '<p>✓ Logo added</p>' : ''}
+                    `);
+                } else {
+                    const error = await response.json();
+                    showResults(`
+                        <div class="error">❌ Error:</div>
+                        <pre>${JSON.stringify(error, null, 2)}</pre>
+                    `);
+                }
+            } catch (error) {
+                showResults(`
+                    <div class="error">❌ Error:</div>
+                    <pre>${error.message}</pre>
+                `);
+            } finally {
+                hideLoading();
+            }
+        }
+    </script>
+</body>
+</html>
