@@ -2,6 +2,7 @@
 PDF Redaction Microservice
 Main application entry point
 """
+import os
 from flask import Flask
 from flask_cors import CORS
 from app.api.routes import api_bp
@@ -23,6 +24,10 @@ def create_app():
 
     return app
 
+# Create app instance for gunicorn
+app = create_app()
+
 if __name__ == '__main__':
-    app = create_app()
-    app.run(host='0.0.0.0', port=5000, debug=True)
+    # Get port from environment variable or default to 5000
+    port = int(os.environ.get('PORT', 5000))
+    app.run(host='0.0.0.0', port=port, debug=False)
