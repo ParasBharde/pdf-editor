@@ -249,8 +249,10 @@ class PDFRedactionService:
 
             # Convert to DOCX if requested
             if output_format.lower() == 'docx':
+                # Use the already-redacted PDF for DOCX conversion
+                # This ensures the sensitive data is already removed
                 redacted_output = DOCXService.process_docx_full(
-                    pdf_bytes,
+                    redacted_pdf,  # Use redacted PDF, not original
                     redaction_types,
                     header_config,
                     footer_config,

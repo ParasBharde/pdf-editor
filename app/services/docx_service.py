@@ -84,9 +84,103 @@ class DOCXService:
                     pass
 
     @staticmethod
+    def _redact_paragraph_preserve_formatting(paragraph, terms_to_redact: set):
+        """
+        Redact terms from paragraph while preserving formatting.
+        Works at the run level to maintain bold, italic, font size, etc.
+
+        Args:
+            paragraph: docx paragraph object
+            terms_to_redact: Set of terms to remove
+        """
+        if not paragraph.runs:
+            return
+
+        # Get the full text of the paragraph
+        full_text = paragraph.text
+
+        # Check if any term exists in this paragraph
+        has_terms = any(term in full_text for term in terms_to_redact)
+        if not has_terms:
+            return
+
+        # Build the redacted text (completely remove sensitive data)
+        redacted_text = full_text
+        for term in terms_to_redact:
+            redacted_text = redacted_text.replace(term, '')
+
+        # Clean up extra spaces that might result from removal
+        redacted_text = re.sub(r'  +', ' ', redacted_text)
+        redacted_text = re.sub(r' ([,.:;])', r'\1', redacted_text)  # Remove space before punctuation
+        redacted_text = redacted_text.strip()
+
+        # If the entire paragraph content was sensitive data, clear it
+        if not redacted_text:
+            for run in paragraph.runs:
+                run.text = ''
+            return
+
+        # Preserve formatting from first run and apply to redacted text
+        if paragraph.runs:
+            first_run = paragraph.runs[0]
+            # Store the formatting properties
+            font_name = first_run.font.name
+            font_size = first_run.font.size
+            font_bold = first_run.font.bold
+            font_italic = first_run.font.italic
+            font_underline = first_run.font.underline
+
+            # Clear all runs except the first
+            for run in paragraph.runs[1:]:
+                run.text = ''
+
+            # Set the redacted text on the first run
+            first_run.text = redacted_text
+
+            # Restore formatting
+            if font_name:
+                first_run.font.name = font_name
+            if font_size:
+                first_run.font.size = font_size
+            if font_bold is not None:
+                first_run.font.bold = font_bold
+            if font_italic is not None:
+                first_run.font.italic = font_italic
+            if font_underline is not None:
+                first_run.font.underline = font_underline
+
+    @staticmethod
+    def _extract_all_text(doc) -> str:
+        """Extract all text from DOCX including tables, headers, footers."""
+        text_parts = []
+
+        # Main body paragraphs
+        for para in doc.paragraphs:
+            text_parts.append(para.text)
+
+        # Tables
+        for table in doc.tables:
+            for row in table.rows:
+                for cell in row.cells:
+                    for para in cell.paragraphs:
+                        text_parts.append(para.text)
+
+        # Headers and footers
+        for section in doc.sections:
+            if section.header:
+                for para in section.header.paragraphs:
+                    text_parts.append(para.text)
+            if section.footer:
+                for para in section.footer.paragraphs:
+                    text_parts.append(para.text)
+
+        return '\n'.join(text_parts)
+
+    @staticmethod
     def redact_docx(docx_bytes: bytes, redaction_types: List[str]) -> bytes:
         """
-        Redact sensitive information from DOCX
+        Redact sensitive information from DOCX while preserving formatting.
+        Completely removes sensitive data (no [REDACTED] markers).
 
         Args:
             docx_bytes: DOCX file as bytes
@@ -99,7 +193,7 @@ class DOCXService:
         doc = Document(io.BytesIO(docx_bytes))
 
         # Get all text to find what needs to be redacted
-        full_text = '\n'.join([para.text for para in doc.paragraphs])
+        full_text = DOCXService._extract_all_text(doc)
         sensitive_data = RedactionPatterns.get_redaction_items(full_text, redaction_types)
 
         # Collect all terms to redact
@@ -107,21 +201,32 @@ class DOCXService:
         for data_type, items in sensitive_data.items():
             terms_to_redact.update(items)
 
-        # Redact in paragraphs
-        for paragraph in doc.paragraphs:
-            for term in terms_to_redact:
-                if term in paragraph.text:
-                    # Replace with [REDACTED]
-                    paragraph.text = paragraph.text.replace(term, '[REDACTED]')
+        if not terms_to_redact:
+            # Nothing to redact
+            return docx_bytes
 
-        # Redact in tables
+        # Redact in paragraphs (preserve formatting)
+        for paragraph in doc.paragraphs:
+            DOCXService._redact_paragraph_preserve_formatting(paragraph, terms_to_redact)
+
+        # Redact in tables (preserve formatting)
         for table in doc.tables:
             for row in table.rows:
                 for cell in row.cells:
                     for paragraph in cell.paragraphs:
-                        for term in terms_to_redact:
-                            if term in paragraph.text:
-                                paragraph.text = paragraph.text.replace(term, '[REDACTED]')
+                        DOCXService._redact_paragraph_preserve_formatting(paragraph, terms_to_redact)
+
+        # Redact in headers
+        for section in doc.sections:
+            if section.header:
+                for paragraph in section.header.paragraphs:
+                    DOCXService._redact_paragraph_preserve_formatting(paragraph, terms_to_redact)
+
+        # Redact in footers
+        for section in doc.sections:
+            if section.footer:
+                for paragraph in section.footer.paragraphs:
+                    DOCXService._redact_paragraph_preserve_formatting(paragraph, terms_to_redact)
 
         # Save to bytes
         output_stream = io.BytesIO()
