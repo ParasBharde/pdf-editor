@@ -89,8 +89,15 @@ def redact_pdf():
         redacted_pdf_bytes = result['redacted_pdf']
 
         # Create filename for download
-        original_filename = secure_filename(file.filename)
-        base_name = original_filename.rsplit('.', 1)[0]
+        original_filename = secure_filename(file.filename) if file.filename else ''
+        # Handle case where secure_filename returns empty string
+        if not original_filename or original_filename == '.pdf':
+            base_name = 'document'
+        else:
+            base_name = original_filename.rsplit('.', 1)[0]
+            # Ensure base_name is not empty
+            if not base_name:
+                base_name = 'document'
         output_filename = f"{base_name}_redacted.{output_format}"
 
         # Set MIME type based on output format

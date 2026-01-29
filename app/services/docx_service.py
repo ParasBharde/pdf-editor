@@ -7,6 +7,8 @@ from docx import Document
 from docx.shared import Pt, Inches, RGBColor
 from docx.enum.text import WD_ALIGN_PARAGRAPH
 import io
+import os
+import tempfile
 import re
 from typing import List, Optional, Dict
 from app.services.redaction_patterns import RedactionPatterns
@@ -28,17 +30,58 @@ class DOCXService:
         Returns:
             DOCX file as bytes
         """
-        # Create temporary streams
-        pdf_stream = io.BytesIO(pdf_bytes)
-        docx_stream = io.BytesIO()
+        # pdf2docx requires actual file paths, not BytesIO streams
+        # Using temporary files to avoid "bad filename" errors
+        temp_pdf_fd = None
+        temp_docx_fd = None
+        temp_pdf_path = None
+        temp_docx_path = None
 
-        # Convert PDF to DOCX
-        cv = Converter(pdf_stream)
-        cv.convert(docx_stream)
-        cv.close()
+        try:
+            # Create temporary PDF file
+            temp_pdf_fd, temp_pdf_path = tempfile.mkstemp(suffix='.pdf')
+            with os.fdopen(temp_pdf_fd, 'wb') as f:
+                f.write(pdf_bytes)
+            temp_pdf_fd = None  # fd is closed by os.fdopen
 
-        docx_stream.seek(0)
-        return docx_stream.read()
+            # Create temporary DOCX file path
+            temp_docx_fd, temp_docx_path = tempfile.mkstemp(suffix='.docx')
+            os.close(temp_docx_fd)
+            temp_docx_fd = None
+
+            # Convert PDF to DOCX using file paths
+            cv = Converter(temp_pdf_path)
+            cv.convert(temp_docx_path)
+            cv.close()
+
+            # Read the resulting DOCX file
+            with open(temp_docx_path, 'rb') as f:
+                docx_bytes = f.read()
+
+            return docx_bytes
+
+        finally:
+            # Clean up temporary files
+            if temp_pdf_fd is not None:
+                try:
+                    os.close(temp_pdf_fd)
+                except OSError:
+                    pass
+            if temp_docx_fd is not None:
+                try:
+                    os.close(temp_docx_fd)
+                except OSError:
+                    pass
+            if temp_pdf_path and os.path.exists(temp_pdf_path):
+                try:
+                    os.unlink(temp_pdf_path)
+                except OSError:
+                    pass
+            if temp_docx_path and os.path.exists(temp_docx_path):
+                try:
+                    os.unlink(temp_docx_path)
+                except OSError:
+                    pass
 
     @staticmethod
     def redact_docx(docx_bytes: bytes, redaction_types: List[str]) -> bytes:
